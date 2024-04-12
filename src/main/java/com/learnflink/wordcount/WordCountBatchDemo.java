@@ -23,7 +23,6 @@ public class WordCountBatchDemo {
                 String[] words = value.split(" ");
                 for (String word : words) {
                     Tuple2<String, Integer> wordTuple2 = Tuple2.of(word, 1);
-
                     output.collect(wordTuple2);
                 }
             }
