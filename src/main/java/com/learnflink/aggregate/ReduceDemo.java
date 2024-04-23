@@ -1,13 +1,14 @@
 package com.learnflink.aggregate;
 
 import com.learnflink.bean.WaterSensor;
+import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
-public class SimpleAggregateDemo {
+public class ReduceDemo {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
@@ -28,18 +29,26 @@ public class SimpleAggregateDemo {
         });
 
         /**
-         * 简单聚合算子
-         * 1. 在keyby之后才能调用
-         * 2. 位置索引适用于tuple类型
-         * 3. max与maxby的区别：
-         *      max取比较字段的最大值，非比较字段保留第一条数据
-         *      maxby取比较字段的最大值，同时非比较字段取最大值这条的数据
-         *
+         * reduce:
+         * keyby之后调用
+         * 输入类型=输出类型，类型不能变
+         * 每个key的第一条数据来的时候不会执行reduce方法，存起来直接输出
+         * reduce中的两个参数：
+         * value1：之前的计算结果，存状态
+         * value2：现在来的数据
          */
 
-        SingleOutputStreamOperator<WaterSensor> sum = waterSensorKeyedStream.sum("vc");
+        SingleOutputStreamOperator<WaterSensor> reduce = waterSensorKeyedStream.reduce(new ReduceFunction<WaterSensor>() {
+            @Override
+            public WaterSensor reduce(WaterSensor waterSensor1, WaterSensor waterSensor2) throws Exception {
+                System.out.println("water sensor1=" + waterSensor1);
+                System.out.println("water sensor2=" + waterSensor2);
+                return new WaterSensor(waterSensor1.id, waterSensor2.ts, waterSensor1.vc + waterSensor2.vc);
+            }
+        });
 
-        sum.print();
+        reduce.print();
+
         env.execute();
     }
 }
